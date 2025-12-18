@@ -77,7 +77,7 @@
       padding-bottom: calc(env(safe-area-inset-bottom) + 96px); /* 預留底部按鈕空間 */
     }
     /* 讓提交按鈕列固定在底部 */
-    .panel .row
+    .panel .row{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
 
     .panel-footer{
       position: sticky;
@@ -203,10 +203,9 @@
 
     const detail = document.getElementById('detail');
     const detailTitle = document.getElementById('detailTitle');
-    const detailSummary = document.getElementById('detailSummary');
+    const detailTheory = document.getElementById('detailTheory');
+    const detailKeypoints = document.getElementById('detailKeypoints');
     const detailExercise = document.getElementById('detailExercise');
-    const detailAnswer = document.getElementById('detailAnswer');
-    const detailNews = document.getElementById('detailNews');
     const detailQuiz = document.getElementById('detailQuiz');
     const submitQuizBtn = document.getElementById('submitQuiz');
     const resetQuizBtn = document.getElementById('resetQuiz');
@@ -271,10 +270,20 @@
         const d = DAYS.find(x => x.day === day);
         if (!d) return;
         detailTitle.textContent = `Day ${d.day} — ${d.topic}`;
-        detailSummary.innerHTML = d.summary || '<span class="empty">（本日沒有理論簡述）</span>';
-        detailExercise.innerHTML = d.exercise || '<span class="empty">（本日沒有練習題）</span>';
-        detailAnswer.innerHTML = d.answer || '<span class="empty">（本日沒有答案/技巧）</span>';
-        detailNews.innerHTML = d.news || '<span class="empty">（無新聞摘要）</span>';
+        detailTheory.innerHTML = d.summary || '<span class="empty">（本日沒有理論簡述）</span>';
+        // 由 summary 自動整理重點（避免資料缺欄造成空白）
+        const kpSrc = (d.summary || '').replace(/<br\s*\/?>/gi,' ').trim();
+        if (kpSrc) {
+          const parts = kpSrc.split(/[。！？]/).map(s=>s.trim()).filter(Boolean).slice(0,6);
+          const lis = parts.map(s=>`<li>${s}</li>`).join('');
+          detailKeypoints.innerHTML = `<ul>${lis}</ul>`;
+        } else {
+          detailKeypoints.innerHTML = '<span class="empty">（本日沒有重點整理）</span>';
+        }
+
+        detailExercise.innerHTML = (d.exercise ? `<div>${d.exercise}</div>` : '<span class="empty">（本日沒有練習題）</span>')
+          + (d.answer ? `<hr style="border:0;border-top:1px solid #1f2937;margin:.75rem 0">${d.answer}` : '')
+          + (d.news ? `<hr style="border:0;border-top:1px solid #1f2937;margin:.75rem 0"><div style="color:#93c5fd">【新聞摘要】</div>${d.news}` : '');
         renderQuiz(day);
         quizResult.textContent = '';
         detail.style.display = 'block';
