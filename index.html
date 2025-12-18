@@ -280,7 +280,16 @@
         detail.style.display = 'block';
         detail.setAttribute('aria-hidden', 'false');
       }
-    });
+    }, true);
+
+    // iOS Safari: ensure tap triggers view even when click is swallowed
+    cardsEl.addEventListener('touchend', (e) => {
+      const btn = e.target.closest('button.btn.view');
+      if (!btn) return;
+      // Prevent the scroll container from consuming the tap
+      e.preventDefault();
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }, { capture: true, passive: false });
 
     // Close modal
     document.getElementById('closeDetail').addEventListener('click', () => { detail.style.display = 'none'; detail.setAttribute('aria-hidden', 'true'); });
