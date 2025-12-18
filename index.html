@@ -1,0 +1,331 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>北科大經營與實務複習網頁（完全離線版）</title>
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af; --accent:#22c55e; --accent-2:#60a5fa; --danger:#ef4444; }
+    html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans TC, "Helvetica Neue", Arial, "Noto Sans", "PingFang TC", "Microsoft JhengHei", sans-serif; }
+    * { box-sizing: border-box; }
+    a { color: var(--accent-2); }
+    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    header { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+    h1 { font-size: 1.8rem; margin: 0; }
+    .controls { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; width:100%; }
+    input[type="search"] { flex:1; padding:.6rem .75rem; border-radius:.5rem; border:1px solid #1f2937; background:#0b1220; color:var(--text); }
+    .progress { height:10px; background:#1f2937; border-radius:6px; overflow:hidden; width:240px; }
+    .bar { height:100%; background: linear-gradient(90deg, var(--accent), #16a34a); width:0%; transition: width .3s; }
+
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:1rem; margin-top:1rem; }
+    .card { background: linear-gradient(180deg, #0b1220, #0b1220 70%, #0d1322); border:1px solid #1f2937; border-radius: .75rem; padding: 1rem; position:relative; }
+    .card h3 { margin:.2rem 0 .6rem; font-size: 1.05rem; }
+    .topic { color:var(--muted); font-size:.92rem; margin-bottom:.6rem; }
+    .actions { display:flex; align-items:center; gap:.5rem; }
+    .btn { padding:.45rem .75rem; border-radius:.5rem; border:1px solid #1f2937; background:#0b1220; color:var(--text); cursor:pointer; }
+    .btn.view { border-color:#1d4ed8; }
+    .btn.reset { border-color:#ef4444; color:#fecaca; }
+    .btn.save { border-color:#22c55e; color:#a7f3d0; }
+    .badge { position:absolute; top:.75rem; right:.75rem; color:#a7f3d0; background:#064e3b; border:1px solid #065f46; padding:.2rem .45rem; border-radius:.4rem; font-size:.75rem; display:none; }
+    .card.done .badge { display:block; }
+
+    .detail { position: fixed; inset: 0; background: rgba(2,6,23,.85); display:none; padding:0; }
+.panel { position:fixed; inset:0; width:100%; height:100%; background:#0b1220; border:none; border-radius:0; padding:0; box-shadow:none; display:flex; flex-direction:column; }
+.panel header { position: sticky; top: 0; z-index: 20; display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.9rem 1rem; background:#0b1220; border-bottom:1px solid #1f2937; }
+.panelBody { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 1rem 1.2rem; }
+    .panel h2 { margin:.2rem 0; font-size:1.25rem; }
+    .close { background:#1f2937; border:none; color:#fff; border-radius:.4rem; padding:.4rem .6rem; cursor:pointer; }
+    .section { margin-top: .8rem; }
+    .section h4 { margin:.2rem 0 .4rem; font-size:1rem; color:#a5b4fc; }
+    .section .content { background:#0a0f1c; border:1px solid #111827; border-radius:.5rem; padding:.75rem; line-height:1.6; }
+    .empty { color:#9ca3af; font-style: italic; }
+
+    .quiz { margin-top:.6rem; }
+    .quiz .q { margin:.5rem 0; }
+    .quiz .opt { display:block; padding:.35rem .5rem; border:1px solid #1f2937; background:#0a0f1c; border-radius:.4rem; margin:.3rem 0; cursor:pointer; }
+    .quiz .opt.correct { border-color:#16a34a; background:#052e1a; }
+    .quiz .opt.wrong { border-color:#ef4444; background:#3b0a0a; }
+    .quiz .exp { color:#93c5fd; font-size:.9rem; margin:.2rem 0 .4rem; }
+    .quiz .result { margin-top:.6rem; font-weight:600; }
+    .row { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
+
+    .file { display:none; }
+  
+    /* --- iPhone 友善：確保小測驗「提交作答/重做」永遠看得到 --- */
+    .panel{
+      height: 100vh;           /* 全螢幕 */
+      max-height: 100vh;
+      display: flex;
+      flex-direction: column;  /* 讓內容區可獨立捲動 */
+    }
+    .panel > header{
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #0b1220;
+      padding-top: .25rem;
+      padding-bottom: .5rem;
+      border-bottom: 1px solid #1f2937;
+    }
+    /* 讓面板內除了 header 之外的內容成為可捲動區 */
+    .panel .panel-body{
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(env(safe-area-inset-bottom) + 96px); /* 預留底部按鈕空間 */
+    }
+    /* 讓提交按鈕列固定在底部 */
+    .panel .row.sticky-actions{
+      position: sticky;
+      bottom: 0;
+      z-index: 6;
+      background: rgba(11,18,32,.95);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid #1f2937;
+      padding: .75rem 0 calc(env(safe-area-inset-bottom) + .5rem);
+      margin-top: .75rem;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📚 北科大經營與實務複習網頁（完全離線版）</h1>
+      <div class="controls">
+        <input id="search" type="search" placeholder="搜尋 Day 或主題… (即時過濾)" />
+        <div class="progress" title="完成進度"><div id="progressBar" class="bar"></div></div>
+        <button id="resetAll" class="btn reset">清除勾選</button>
+        <button id="saveState" class="btn save">匯出進度</button>
+        <label class="btn" for="loadFile">匯入進度</label>
+        <input id="loadFile" class="file" type="file" accept="application/json" />
+      </div>
+    </header>
+    <div id="cards" class="grid"></div>
+    <footer>
+      <p>此版本不使用 LocalStorage，所有進度僅在本頁面記憶。若要跨次保存，請使用「匯出進度」下載 JSON；下次以「匯入進度」載入即可。</p>
+      <p>提示：在 iPhone 上請於 Safari 開啟本檔，避免以檔案預覽模式（Quick Look）開啟導致 JavaScript 不執行。</p>
+    </footer>
+  </div>
+
+  <div id="detail" class="detail" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true">
+      <header>
+        <h2 id="detailTitle"></h2>
+        <button class="close" id="closeDetail">關閉</button>
+      </header>
+      <div class="panelBody">
+      <div class="section">
+        <h4>理論 / 內容簡述</h4>
+        <div id="detailSummary" class="content"></div>
+      </div>
+      <div class="section">
+        <h4>模擬試題 / 練習題</h4>
+        <div id="detailExercise" class="content"></div>
+      </div>
+      <div class="section">
+        <h4>滿分答案 / 參考答案 / 應試技巧</h4>
+        <div id="detailAnswer" class="content"></div>
+      </div>
+      <div class="section">
+        <h4>新聞摘要（延伸閱讀）</h4>
+        <div id="detailNews" class="content"></div>
+      </div>
+      <div class="section">
+        <h4>每日小測驗（2 題選擇題）</h4>
+        <div id="detailQuiz" class="content quiz"></div>
+        <div class="row sticky-actions">
+          <button id="submitQuiz" class="btn">提交作答</button>
+          <button id="resetQuiz" class="btn">重做</button>
+          <div id="quizResult" class="result"></div>
+        </div>
+      </div>
+      </div>
+      </div><!-- /.panel-body -->
+    </div>
+  </div>
+
+  <script>
+    const DAYS = [{"day": 1, "topic": "SWOT 分析", "summary": "SWOT 分析用來評估企業內外部狀況，分為內部的優勢 (S) 與劣勢 (W)、外部的機會 (O) 與威脅 (T)。透過盤點這四個面向，企業能制定四種策略：利用優勢抓住機會（SO），用優勢抵禦威脅（ST），克服劣勢抓住機會（WO），以及減少劣勢迴避威脅（WT）。", "exercise": "假設某企業主要產品為筆記型電腦，其優勢是研發技術領先、品牌知名度高，劣勢是產品線單一；機會是遠距工作需求增加，威脅是平板與手機市場競爭激烈。請完成四象限分析並提出對應策略。", "answer": "**SO：**利用研發與品牌優勢推出遠距工作專用筆電或週邊，快速搶佔新需求。<br>**ST：**憑藉技術與品牌，在產品中加入獨家應用或服務，如安全防護或協同軟體，提高差異化以抵禦平板與手機競爭。<br>**WO：**開發輕量型或平板式筆電，擴充產品線以吸引行動族群，同時與供應商合作降低成本。<br>**WT：**如果研發資源有限，則縮減某些利潤較低的規格或市場，改以與軟體或雲端服務合作，減輕硬體市場壓力。", "news": "商業週刊在 2025 年指出，AI 將成為不可逆的趨勢，各行各業必須思考如何擁抱 AI、數據、人才與跨界合作 。這對 SWOT 的機會分析具有啟示：AI 技術應納入機會項，企業可以利用自身優勢搶進相關領域或與 AI 新創合作。另一則財經雜誌報導企業如何利用 AI 協助碳排資料管理與 ESG 轉型，顯示 ESG 法規與數據管理也是重要機會 。"}, {"day": 2, "topic": "波特五力分析", "summary": "五力模型用來評估產業競爭與利潤潛力。五力包括：(1) 現有競爭者的競爭強度，(2) 潛在進入者的威脅，(3) 替代品的威脅，(4) 供應商的議價力量，(5) 買方的議價力量。五力愈強，產業平均利潤愈低；企業可透過提升差異化、提高轉換成本、建立進入障礙等方式降低五力壓力。", "exercise": "請以台灣的電動機車市場為例，說明五力強弱並提出兩項策略改善企業競爭地位。", "answer": "**現有競爭者：**多家品牌競爭激烈，應開發差異化功能（例如智慧導航或綠電租賃服務）以避開價格戰。<br>**潛在進入者：**資本與技術門檻中等，可透過技術專利、建立換電站網絡來加高進入障礙。<br>**替代品：**大眾運輸、汽車或自行車等替代威脅存在，可提供便利換電或租賃方案以提升便利性。<br>**供應商議價力：**電池及關鍵零件供應商數量有限，須簽訂長期供貨合約或布局自製以降低議價力。<br>**買方議價力：**消費者注重價格與服務，應推會員制度與售後服務減少客戶流失。", "news": "商業週刊近期專題指出，AI 與 ESG 交織將改寫產業生態，不僅強化供應鏈管理，也促使企業加速產品創新 。例如，財經媒體報導企業以 AI 管理碳排資料及研擬減碳策略，有助建立新的進入障礙並提升品牌形象。對五力分析而言，AI 技術可弱化替代品威脅並提升差異化優勢。"}, {"day": 3, "topic": "Maslow 需求層次理論", "summary": "Maslow 的需求層次理論將人類需求分為五個層次，由低到高依序為：生理、安全、愛與歸屬、尊重、自我實現。只有當低層次需求獲得滿足後，個體才會追求高層次需求。管理者應據此提供不同激勵，例如滿足員工生理與安全需求後，再重視歸屬感、尊重感與自我實現機會。", "exercise": "某公司研發人員薪資優渥，但對工作失去熱情並考慮轉職。請依 Maslow 理論分析其需求層次，並提出管理建議。", "answer": "員工薪資福利良好，生理與安全需求已滿足，但可能缺乏社交歸屬與尊重，或是自我實現需求未被滿足。<br>管理建議：增強團隊合作與溝通，設計導師制度或團隊活動滿足歸屬感；建立表揚與職涯發展機制提升尊重需求；提供挑戰性專案、進修機會與技術創新平台讓其發揮專長，滿足自我實現需求。", "news": "財經雜誌指出，企業在推動 AI 或 ESG 轉型過程中，重視員工的心理需求尤為關鍵。研發人員或工程師若感受不到公司使命與願景，可能在高薪之下仍出現倦怠。商業週刊也提醒，在 AI 與 ESG 夯話題之外，企業必須強化內部文化與人才照顧，特別是提供成就感與成長機會，才能留住關鍵人才 。<br><br><br><br><br>這類結構可以套用到其他天數與理論：先寫出理論簡述，再設計練習題，提供參考解答，最後簡述新聞摘要以連結現實。若需要擴充到完整 30 天，建議參照上述格式將各理論（如 Herzberg、McClelland、期望理論、交易型/變革型領導、ESG 等）擴寫即可。如有新的新聞更新，可以在對應理論下加入合適的新聞摘要來補充。<br>以下為其他主題的每日複習內容範例，採用「理論簡述＋練習題與滿分答案＋年度新聞摘要」的模式，供您參考並可依需求調整："}, {"day": 4, "topic": "Herzberg 雙因子理論", "summary": "Herzberg 將影響工作滿意度的因素分為兩類：<br><br>保健因素（衛生因素）：如薪資、工作條件、公司政策、人際關係等。缺乏時會使員工不滿，但即使補足也不會增加滿意度。<br>激勵因素：如成就感、責任、升遷與成長機會等。這些因素能提升員工內在動機和工作滿意度。<br>管理者應先確保保健因素到位，避免不滿，再提供激勵因素，才能真正激發員工動力。", "exercise": "某科技公司工程師反映薪資福利改善後仍缺乏動力，請依 Herzberg 理論分析原因並建議改善策略。", "answer": "薪資屬保健因素，改善後只會避免不滿，但缺乏成就感與成長機會（激勵因素）仍使員工無法提升滿意度。建議公司：<br><br>設計挑戰性專案與技術分享會，讓工程師獲得成就感並累積影響力。<br>建立透明的職涯發展與升遷制度，提供技術與管理雙軌發展管道。<br>設立表揚制度與專利獎勵，肯定創新成果，提高工作成就感。", "news": "商業週刊指出，許多企業在導入 AI 和 ESG 轉型的同時，發現工程師對薪資之外的學習與使命感更加重視 。這呼應 Herzberg 理論：單純改善薪資並不夠，企業需提供挑戰性任務與內在成長機會以留住人才。"}, {"day": 5, "topic": "McClelland 三需求理論", "summary": "McClelland 認為人的動機主要來自三種需求：<br><br>成就需求 (nAch)：渴望解決具挑戰性的問題並取得卓越成果。<br>權力需求 (nPow)：希望影響他人、掌控資源與決策。<br>歸屬需求 (nAff)：需要與人建立關係、感受被接納。<br>個體通常三者皆有，但強度不同。管理者應觀察員工主導需求並採取相應激勵措施。", "exercise": "某公司有三名主管：A 喜歡負責重大專案、追求成就；B 喜歡帶領團隊、影響決策；C 喜歡營造團隊和諧。請依三需求理論提出具體激勵策略。", "answer": "A 屬成就需求：給予具挑戰性的專案、設定具體目標與即時回饋，讓其滿足挑戰與成就。<br>B 屬權力需求：授權其領導跨部門專案，參與策略會議，發揮影響力。<br>C 屬歸屬需求：安排其負責員工關懷或團隊活動，提升團隊氛圍，讓其感受他人需要。", "news": "財經雜誌報導，2025 年企業招募中強調「人際協作能力」和「自我實現」，並提供雙軌晉升制度（管理軌與專業軌），以滿足不同員工的需求類型 。這印證 McClelland 理論：理解員工需求並提供彈性發展路徑，是留才關鍵。"}, {"day": 6, "topic": "公平理論 (Equity Theory)", "summary": "公平理論認為員工會比較自己「投入（Input）」與「報酬（Output）」的比值，並與他人相較，若感到不公平，會產生不滿。不公平會導致降低投入、要求加薪或離職等行為。公平感有內部（與同事）、外部（與其他公司）與個人（與過去或期待）三層面。", "exercise": "公司內部獎金制度不透明，員工私下比較後覺得付出相同努力卻獎金差異很大。請用公平理論分析其影響並提出改善建議。", "answer": "員工投入/報酬比與同事相比顯得吃虧，產生相對剝奪感；可能降低工作投入、質疑公司制度甚至流失。建議：<br><br>建立透明獎酬制度，說明績效評估標準與獎金發放方式。<br>定期調查市場薪資，保持外部公平。<br>舉辦溝通座談，讓員工了解獎金差異原因並提供申訴管道。", "news": "2024 年長榮海運大手筆年終引發其他公司員工抱怨自己的年終不公。這顯示社會比較會放大員工的不公平感，企業需更重視薪酬公正與資訊透明。財經媒體也建議企業導入差異化獎酬與公開績效，以維持公平感。"}, {"day": 7, "topic": "期望理論 (Expectancy Theory)", "summary": "Vroom 提出期望理論，指出動機=期望(E)×工具性(I)×效價(V)。<br><br>期望 (Expectancy)：相信努力能提升績效的程度。<br>工具性 (Instrumentality)：相信績效高能獲得獎賞的程度。<br>效價 (Valence)：獎賞對個人的價值。<br>任何一項為零，激勵力量即為零。", "exercise": "一支研發團隊對完成新產品缺乏動力。他們覺得再努力也未必做出好產品，公司也不一定重視成果。請根據期望理論提出三項激勵措施。", "answer": "提高期望：提供研發資源與培訓，設立可行的階段目標，使員工相信努力可以成功。<br>提高工具性：與員工約定完成目標即可獲得成果獎金或晉升機會，並建立公平評估機制。<br>提高效價：瞭解員工需求，如有人重視成就與成長，則提供公開表揚與進修；有人重視休假，則提供額外假期，確保獎賞對個人有吸引力。", "news": "今年多家科技企業採用 OKR（目標與關鍵成果）制度，透過明確目標、持續回饋與獎酬連動，提高員工對成果的期望與工具性。商業週刊也指出，新世代員工重視工作的意義與自我成長，企業必須提供多元獎酬以提高效價。"}, {"day": 8, "topic": "數位轉型領導", "summary": "交易型領導：建立目標與獎懲制度，以外在報酬引導下屬完成任務。適用於穩定環境與短期績效。<br>變革型領導：以願景激勵、智力啟發與個別關懷引導團隊，激發內在動機與創新。適用於不確定與變革情境。<br>二者不是對立，而應情境適用並可互補。", "exercise": "某公司導入數位轉型，初期需要完善流程管理，後期則需鼓舞員工接受變革。請說明如何混合運用交易型與變革型領導。", "answer": "初期：以交易型領導規定清晰目標與獎懲，確保系統導入如期完成；透過績效獎金激勵員工學習系統。<br>後期：轉向變革型領導，闡述數位轉型願景（如成為智慧工廠），鼓勵員工提出創新流程改善建議，並提供培訓與晉升機會；讓員工參與決策、感受到使命感與成長機會。<br>如此可在不同階段激發團隊動力，兼顧紀律與創新。", "news": "商周報導，近年許多企業實施數位轉型時，新任領導者兼顧硬性目標與人性關懷：先以交易型手段確立基礎，再以變革型帶領組織創新。此做法能化解員工抗拒並提升變革成功率。"}, {"day": 9, "topic": "Kotter 八步驟變革流程", "summary": "Kotter 提出成功變革的八個步驟：<br><br>營造緊迫感：讓員工意識到變革必要性。<br>組建強力聯盟：聚集具影響力的主管與意見領袖。<br>建立願景與策略：提出明確的目標和路徑。<br>充分溝通願景：持續多管道傳達，取得共識。<br>授權行動、排除障礙：修改制度、提供資源，讓人們落實。<br>創造短期勝利：設立階段目標，公開慶祝成果。<br>再接再厲：利用勝利動能推進更多變革。<br>將新變革融入文化：把成功經驗制度化。", "exercise": "企業打算導入 ESG 報告制度，請依 Kotter 八步驟設計推行計畫。", "answer": "緊迫感：透過法規要求與投資人需求說明不導入 ESG 之風險。<br>聯盟：組成跨部門小組（財務、永續、資訊）合作。<br>願景與策略：制定 3 年內完成揭露的目標與路線圖。<br>溝通：在內部會議、企業內網定期宣傳 ESG 意義。<br>排除障礙：提供員工培訓、調整績效制度與 IT 系統支援。<br>短期勝利：達成第一份碳盤查報告即公開表揚團隊。<br>再接再厲：擴展至供應鏈碳資料收集和社會面揭露。<br>融入文化：將 ESG 指標納入績效評估及公司治理。", "news": "2025 年台灣政府要求大型企業逐步揭露 ESG 資訊，許多企業導入永續委員會，並按照法規推動碳盤查和 ESG 報告。成功案例顯示，按照 Kotter 模型循序推進，有助於增進員工認同並縮短導入時程。"}, {"day": 10, "topic": "BCG 矩陣", "summary": "BCG 矩陣以市場成長率和相對市場佔有率為兩個維度，把產品或事業部分類為四類：<br><br>明星 (Stars)：高成長、高市佔，需持續投資以維持領先。<br>金牛 (Cash Cows)：低成長、高市佔，能穩定產生現金，應維持並收割。<br>問題 (Question Marks)：高成長、低市佔，需要選擇性投資以成為明星或退出。<br>瘦狗 (Dogs)：低成長、低市佔，通常應縮減或撤出。<br>BCG 用於評估產品組合，指引資源配置。", "exercise": "某集團有四個事業：A（高市佔低成長），B（低市佔高成長），C（高成長高市佔），D（低成長低市佔）。請繪製 BCG 矩陣並提出資源配置建議。", "answer": "A：金牛，提供穩定現金流，投入維持營運並榨取現金；將淨利挹注其他事業。<br>B：問題，需要分析市場潛力與競爭力；若有機會成明星則加大投資，否則適時退出。<br>C：明星，積極投資、擴大市場佔有，待成長率下降後成為金牛。<br>D：瘦狗，評估是否有策略意義，若沒有則停產或退出，把資源轉移至其他事業。", "news": "不少企業利用 BCG 矩陣檢視產品組合。例如 2025 年某科技公司公開策略，將成熟產品（金牛）收益投入人工智慧和 ESG 相關的新事業（明星），同時剝離表現差的舊產品（瘦狗）。財經雜誌報導指出，這種組合管理有助於平衡企業成長與現金流。"}, {"day": 11, "topic": "CSR 與利害關係人", "summary": "企業社會責任 (CSR) 包括經濟、法律、倫理和慈善四層；利害關係人是受企業決策影響或能影響企業的人，如員工、顧客、供應商、社區等。現代企業透過 CSR 採取永續策略，以平衡股東與其他利害關係人利益。", "exercise": "某公司遭媒體揭發忽視供應商權益而影響品牌形象。請以 CSR 與利害關係人觀點分析並提出改善措施。", "answer": "分析：該公司雖追求營利但忽略供應商（利害關係人）的公平交易與勞動條件，違反 CSR 中倫理責任。<br>建議：<br><br>建立負責任採購政策，要求供應商遵守工時與環保規範。<br>與供應商簽訂公平貿易條款，設立申訴機制。<br>對外發布 CSR 報告，揭露供應鏈治理情況，提升透明度。<br>教育內部員工 CSR 價值，以提升對利害關係人的尊重。", "news": "商周指出，近年 ESG 投資潮帶動企業重視供應鏈責任；品牌企業若忽視上游勞動權益，易遭投資人撤資與社會輿論指責。金融監管機構也鼓勵企業公開 CSR 報告，並將供應商管理列入公司治理評鑑。"}, {"day": 12, "topic": "ESG 永續經營", "summary": "ESG 強調環境 (E)、社會 (S) 與治理 (G) 三面向。<br><br>環境 E：減碳、節能、資源循環、生物多樣性；<br>社會 S：勞工權益、多元共融、產品安全、社區投入；<br>治理 G：董事會獨立性、反貪腐、資訊透明。<br>ESG 影響企業風險、資本成本與品牌形象，已成投資評價基準之一。", "exercise": "假設你是某上市公司的永續長，請為公司的 ESG 三面向各設計一項具體行動計畫。", "answer": "環境：訂定科學減碳目標 (如 2030 年減排 30%)，並導入再生能源與節能設備；建立碳盤查與減排報告流程。<br>社會：推動多元共融政策，例如擴大聘用女性與身障者；進行供應鏈人權審核，保障勞工權益；投資弱勢社區教育專案。<br>治理：增加獨立董事比例設立永續發展委員會；建立內部檢舉制度並每年公開反貪腐紀錄；將 ESG 指標納入高階管理者績效考核。", "news": "2025 年台灣金管會強化 ESG 資訊揭露，要求上市櫃公司報告碳排放與永續績效。許多公司設立永續長與永續委員會，推動碳減排與多元共融；同時，國際投資人也將 ESG 分數納入投資判斷，企業若未跟上可能面臨資金減少與品牌評價下降。"}, {"day": 13, "topic": "數位轉型與工業 4.0", "summary": "數位轉型指企業運用數位技術對業務流程、商業模式與顧客體驗進行根本性變革，包括數位化 (Digitization)、數位優化 (Digitalization) 與轉型 (Transformation) 三階段。工業 4.0 則以 IoT、AI、大數據與自動化技術打造智慧工廠，提高效率與彈性。<br>成功的數位轉型需要技術導入、流程再造與組織文化轉變相結合。", "exercise": "某傳統製造企業受客戶要求供應即時生產數據並降低成本，決定推行工業 4.0。請提出數位轉型的重點工作與可能挑戰。", "answer": "重點工作：<br><br>導入 IoT 感測與 MES 系統，收集實時設備與品質數據。<br>建立數據平台與 AI 模型，進行預測性維護和製程優化。<br>重新設計流程，使產線更彈性，例如採用模組化設備。<br>培訓員工數位技能，建立跨部門協作文化。<br><br>挑戰：設備投資高、員工技能落差、舊流程阻力、資料整合安全性等。需取得管理高層支持並採分階段導入。", "news": "今年商周專文指出，數位轉型不是單靠引進 AI 或雲端即可，關鍵在於人員與流程同步轉型。另有財經雜誌分享企業導入 IoT 與 AI 後，透過預測維修減少設備停機時間和成本。報導也提醒需注意資安及人才培養。"}, {"day": 14, "topic": "危機管理與營運韌性", "summary": "危機管理包含預防、準備、回應與復原。營運韌性是指企業在面對中斷或危機時，能快速恢復並持續運作的能力。其關鍵在於：多元供應來源、充足現金流、彈性人力配置、資訊備援與決策機制。透過風險評估與演練來加強企業韌性。", "exercise": "COVID-19期間，餐飲業受到劇烈衝擊。請舉例說明餐飲企業如何在供應鏈、人力與服務方面展現營運韌性。", "answer": "供應鏈：與多家食材供應商合作，分散風險；建立預測系統以調整採購。<br>人力：實施輪班制與遠距排班，並培訓員工兼任外送或網路客服。<br>服務：快速轉向線上外送及外帶，推出冷凍包或宅配餐盒；加強線上行銷。<br>透過多元化策略與彈性調整，餐飲企業可在疫情期間保持營運並快速復原。", "news": "疫情後，多家企業採用「韌性策略」抵禦供應鏈中斷，例如外送平台與在地農場合作穩定食材；電子業則增加在地庫存與協調生產配額。此外，金融媒體強調建立現金緩衝與彈性工作制度的重要性，以確保面對下一次危機時能更從容應對。"}, {"day": 15, "topic": "平衡計分卡 (Balanced Scorecard)", "summary": "平衡計分卡由四個構面組成：財務、顧客、內部流程、學習與成長。企業透過設計目標與衡量指標，將願景與策略轉化為具體行動與績效指標，並強調構面之間的因果關係。常見用法是以策略地圖展示四構面如何相互支持。", "exercise": "某新創公司希望以平衡計分卡衡量產品研發專案。請為各構面設計一項關鍵指標。", "answer": "財務：研發專案 ROI（例如新產品上市後一年內收益/研發成本）。<br>顧客：新產品客戶滿意度或首三個月客戶留存率。<br>內部流程：產品開發周期時間、缺陷率。<br>學習與成長：參與研發人員培訓時數或創新提案數量。<br>透過這些指標，企業可追蹤專案進度與價值創造，並確保長期能力建設。", "news": "某醫院運用平衡計分卡改善管理：財務上關注營收成本，顧客構面以病患滿意度作為指標，內部流程重視診療效率與安全，學習與成長則評估醫護培訓與創新提案。類似案例激勵其他企業將非財務指標納入績效管理，以支持長期發展。"}, {"day": 16, "topic": "持續改善與品質管理", "summary": "持續改善 (Kaizen) 強調日常小變革累積大效益。品質工具包括 PDCA 循環、六標準差 (DMAIC)、品管七大手法等。目的是減少變異與缺陷，提高效率與顧客滿意度。PDCA 循環：計畫 (Plan)、執行 (Do)、檢查 (Check)、行動 (Act)，為改善的基本流程。", "exercise": "某組裝廠不良率偏高，請利用 PDCA 循環與品質工具提出改善方案。", "answer": "計畫：收集不良資料，用 Pareto 圖找出主要缺陷；用魚骨圖分析可能原因。設定改善目標（如不良率降 50%）。<br>執行：針對主要原因採取措施，如校準設備、標準化作業；進行員工培訓。<br>檢查：以管制圖監控成效，確認缺陷率是否下降；對照目標評估改進。<br>行動：若有效則標準化此做法、撰寫作業指導書；若未達標，則重新檢視原因並進入下一輪 PDCA。", "news": "台灣多家製造企業分享導入六標準差與精益生產後有效降低成本、提高良率。例如自行車廠透過員工每月提出一項改善建議，產能提升 8%、不良率減少 15%。這些成功案例強調持續改善文化的重要性。"}, {"day": 17, "topic": "公平理論與期望理論整合", "summary": "公平理論強調員工會比較自身投入與報酬之比值，若感到相對不公平便會降低投入或要求調整報酬。期望理論則指出激勵力量＝期望×工具性×效價：員工必須相信努力能提升績效、績效能帶來獎賞，且該獎賞對其有價值。整合兩者時，企業需兼顧 「公平」 及 「連結」：不僅要確保獎酬分配合理透明，還要讓員工清楚努力與獎酬的連結，並確保獎酬內容符合員工需求。", "exercise": "某科技公司實施新績效制度，員工普遍不清楚考核標準且覺得加薪不公平，也不確定努力是否能換得晉升。請依公平理論與期望理論提出三項改善建議。", "answer": "建立透明制度：公開績效考核標準與權重，讓員工了解投入/產出比，降低不公平感。<br>強化連結性：設定明確的績效目標與對應獎酬，讓員工相信努力能提升績效且績效必然帶來回報。<br>提供多元獎酬：了解員工需求，除金錢外可提供晉升、培訓或彈性福利，提高獎酬的效價，以增強期望理論的第三項因素。", "news": "長榮海運高額年終造成其他企業員工感受相對剝奪，顯示公平感的重要。多家企業則導入 OKR 管理與即時獎酬，讓員工清楚努力與回報連結，證明公平與期望理論結合能提升士氣。"}, {"day": 18, "topic": "領導力實例解析", "summary": "交易型領導透過明確目標、獎懲制度來管理部屬，適合穩定或短期任務；變革型領導則強調願景激勵、智力啟發與個別關懷，能激發員工超越自我。優秀的領導者常結合兩種風格：先用交易型維持秩序，再用變革型帶動創新與變革。", "exercise": "某零售公司想導入 AI 導購系統，主管希望在建置初期控制進度，後期引導員工創新。請說明如何運用交易型與變革型領導以推動此專案。", "answer": "初期：採交易型領導，明確指定任務分工與期限，以獎金或績效加權激勵工程師，如此能確保基礎架構準時完成。<br>導入中：轉換為變革型領導，向員工闡述新系統將帶來的變革願景與顧客服務提升，鼓勵員工提出創新應用；主管應提供培訓與資源並給予個別關懷與授權。<br>後期：持續混合兩種風格，既監控績效又激發創意，確保專案長期運營。", "news": "商周指出，很多企業在數位轉型中由硬性 KPI 管理進入開放創新，領導者必須先建立制度保障，再以願景和授權激發員工潛能。這正是交易型與變革型領導互補的例證。"}, {"day": 19, "topic": "平台經濟與共享經濟", "summary": "平台經濟透過媒合雙邊或多邊市場，在用戶規模與網路效應下創造價值，例如 Uber、Airbnb。共享經濟強調利用閒置資源（時間、空間、物品）供其他人短期使用，提升資源利用效率。成功的平台需建立信任、支付系統及規模經濟；共享經濟則需有效規範與風險管理。", "exercise": "請以「共享辦公空間」產業為例，運用平台經濟觀點分析其商業模式優勢與挑戰。", "answer": "優勢：平台撮合辦公空間供給者與需求者，使閒置資源利用率提高；透過會員制增加黏著度；多元服務（如會議室租借、行政支援）創造附加價值。<br>挑戰：需要建立使用者信任與評價機制；涉及合規與安全監管；規模經濟尚未形成前，固定成本高、邊際利潤低，易被大型商辦集團擠壓。<br>策略：透過科技管理預約、支付和智慧門禁系統，並與餐飲、會議服務業者合作打造生態圈；制定嚴謹的合約與保險機制降低風險。", "news": "2025 年許多共享與平台服務由「新創探索」轉為「成熟商業」，但因 ESG 指標中涉及勞工權益與環境責任，平台企業也需重視司機權益與空間安全，避免只追求網路效應而忽視社會責任。"}, {"day": 20, "topic": "學習型組織與知識管理", "summary": "學習型組織強調培養持續學習與知識共享文化，使企業能快速適應環境變化。知識管理透過建立資訊系統、社群及最佳實務，促進知識獲取、儲存與傳遞。平衡計分卡將「學習與成長」列為四構面之一，強調員工技能與資訊系統是驅動其他構面的基礎。", "exercise": "某軟體公司因技術變化迅速，需要建立學習型組織並落實知識管理。請列出三項具體措施。", "answer": "設立內部知識平台：建立 Wiki 或社群平台，收錄技術文檔與案例，讓員工分享程式碼與解決方案。<br>導入導師制度與輪調培訓：安排新員工與資深工程師配對，並定期輪換團隊，增進知識流通。<br>將學習納入績效指標：採用平衡計分卡的學習與成長構面，把參與培訓、創新提案等列入考核，鼓勵員工持續學習。", "news": "近期財經雜誌指出，AI 與數位轉型浪潮下，企業不僅投資硬體軟體，更需培養員工數位技能；多家科技公司採用在線學習平台並設立技術分享日，藉以強化學習型組織。這呼應平衡計分卡中強調的「學習與成長」為驅動其他績效的底座。"}, {"day": 21, "topic": "藍海策略與顛覆式創新", "summary": "藍海策略主張跳出紅海競爭，透過消除、降低、提高與創造價值要素，開創無人競爭的市場。顛覆式創新則指初期在低端或利基市場提供簡便低價產品，隨後提升性能進入主流市場，最終取代既有技術。兩者均強調重新定義價值主張與市場邊界。", "exercise": "請舉一個藍海策略或顛覆式創新案例，說明其如何重新定義市場並獲得成功。", "answer": "示例－Airbnb：透過共享經濟模式，以個人閒置房屋為住宿資源，消除傳統旅館業成本與標準化制約，創造在地深度旅遊體驗。初期聚焦長尾需求，後以平台信任機制與評價系統打入主流觀光市場，改寫住宿產業，即具藍海與顛覆式創新特質。", "news": "在 ESG 與淨零趨勢下，新創企業不僅強調創新，也兼顧環境與社會責任。如某材料公司開發可重複使用的環保包裝，透過消除一次性塑膠、創造循環經濟藍海，在投資人與消費者中獲得廣大支持。"}, {"day": 22, "topic": "雲端運算、AI 與新技術", "summary": "雲端運算以按需租用的方式提供運算資源，降低硬體投資門檻。人工智慧 (AI) 利用機器學習與深度學習演算法分析數據並產生預測，可廣泛應用於客服、供應鏈管理、製造等領域。數位轉型不僅是導入科技，更需重構流程與文化。", "exercise": "某家零售商打算導入 AI 客服與雲端分析平台。請列出導入的三個重要注意事項。", "answer": "流程再造：重新定義客服流程與數據收集方式，確保 AI 能獲取高品質資料並輸出有用建議。<br>員工培訓與文化調整：培養客服人員與資料分析師的數位技能，讓員工視 AI 為輔助而非取代，提高接受度。<br>資料治理與安全：制定隱私與安全政策，符合個資法規；建立資料清洗、標準化流程，以確保 AI 預測準確與可信。", "news": "2025 年商周報導指出 AI 技術正在滲透多個產業，從醫療診斷到資金管理，形成難以逆轉的趨勢 。同時亦有財經雜誌提醒，在 ESG 與淨零浪潮下，企業透過 AI 分析碳排與供應鏈數據，更有效地規劃永續策略 。這些新聞印證了導入 AI 與雲端的戰略性與永續性。"}, {"day": 23, "topic": "人力資源趨勢與彈性工作", "summary": "現代人力資源管理強調人才多元、終身學習、彈性工作制度與員工福祉。CSR 與 ESG 中的社會面強調員工權益與健康。企業需兼顧績效與員工幸福，透過提供彈性工時、遠距工作、職涯規劃與福利計畫，才能吸引與留住人才。", "exercise": "請提出三項當前受歡迎的人力資源策略，並說明其帶來的效益。", "answer": "彈性與遠距工作：讓員工自行安排工時或在家工作，增進工作與生活平衡，提高滿意度與生產力。<br>多元共融政策：推行性別平等與友善職場，提供身心障礙者與不同族群平等機會，提升企業形象並激發創新。<br>個人化職涯發展：提供教育訓練、職務輪調與專業職級制度，讓員工看見升遷與成長路徑，降低流動率。", "news": "疫情後全球興起遠距辦公及混合型工作制，專家指出，保留彈性將成為企業留才關鍵。同時，企業對勞工權益、職場多元化重視程度與日俱增，已成為 ESG 評估中重要一環，促使企業調整人力資源策略。"}, {"day": 24, "topic": "商業模式與創業精神", "summary": "商業模式描述企業如何創造價值、傳遞價值並獲取價值。創業精神則指勇於承擔風險、持續尋求機會、創造創新價值的精神。數位轉型和共享經濟讓許多企業重新設計商業模式，例如訂閱制、平台制等。", "exercise": "假設你是一名創業者，欲開發 AI 健身應用程式，請描述其核心商業模式與盈利方式。", "answer": "核心商業模式可採「訂閱＋平台」：用戶透過訂閱制付費取得個性化 AI 教練和健身課程（創造價值）；平台提供訓練影片與社群互動（傳遞價值）；合作健身房和運動品牌可投放廣告或推出聯名商品以增加收益（獲取價值）。此外可設定 freemium 模式，提供免費基本功能吸引用戶，再透過進階功能收費。", "news": "許多新創公司透過平台化和訂閱制結合，成功改變既有產業。財經雜誌報導電動車公司除了賣車，也推出 OTA 軟體更新與能源生態系等新營收模式，顯示商業模式創新是未來競爭的關鍵。"}, {"day": 25, "topic": "整合策略與案例分析", "summary": "縱觀前述理論，企業通常需要綜合運用多種策略與工具，例如：用 SWOT 分析環境、用五力評估產業、用競爭策略制定定位、用平衡計分卡衡量績效、用變革八步驟推動轉型，並結合 CSR/ESG 建立永續優勢。", "exercise": "請以某你熟悉的公司為例，綜合前述理論（如 SWOT、五力、領導、平衡計分卡、CSR/ESG 等），提出完整的策略分析框架。", "answer": "環境分析：使用 SWOT 評估公司資源與外部趨勢（如 AI 與 ESG），使用五力評估所在產業結構與競爭壓力。<br>策略擬定：依據分析，選擇成本領導、差異化或集中策略，並設立可衡量的目標；對尚未成熟但高成長的事業，可用 BCG 規劃投資或撤退。<br>組織與領導：利用 Kotter 八步驟規劃變革流程，並混用交易型與變革型領導風格推動專案。<br>績效衡量：建立平衡計分卡並納入財務、顧客、流程、學習指標，同時規劃 CSR/ESG 行動，以滿足利害關係人。<br>持續改善：推動 PDCA、六標準差等改善機制，並打造學習型組織及創新文化。", "news": "許多企業在研擬策略時採用多重工具。例如國際品牌透過 ESG 報告提升信任，同時藉由藍海策略創造新市場，再以平衡計分卡追蹤長短期績效，可見綜合運用各種管理理論是成功關鍵。"}, {"day": 26, "topic": "永續策略與氣候政策", "summary": "ESG 框架下，企業需制定環境、社會與治理三面的永續策略。近期許多國家開始徵收碳稅或推動碳交易，迫使高排產業加速減碳。企業需盤查範圍 1、2、3 排放，制定淨零路徑並融入企業治理。", "exercise": "一家石化公司將面臨碳稅上路，請列出三項永續轉型策略以降低風險並提升競爭力。", "answer": "技術改造：投資碳捕捉與再利用技術，減少範圍 1 排放；改用再生能源供電，以降低範圍 2 排放。<br>供應鏈管理：要求供應商披露碳足跡，逐步轉向低碳原料；與客戶合作開發低碳產品，減少範圍 3 排放。<br>金融與治理：將 ESG 成為董事會討論常態，成立永續委員會；申請綠色融資降低資本成本；透過永續報告向投資人與社會溝通努力與成果。", "news": "台灣政府宣布未來數年將開徵碳費，並逐步接軌歐盟碳邊境調整機制，各大製造業紛紛提出2050淨零目標。投資人亦將 ESG 納入評價標準，未做減碳規畫的企業可能面臨資金壓力與失去訂單。"}, {"day": 27, "topic": "倫理與公司治理", "summary": "商業倫理要求企業在追求利潤時遵守法律與道德規範，包括誠信、透明與公平。公司治理的核心在於建立有效的監督與內控機制，以保障股東與利害關係人，並避免代理人問題。良善治理透過獨立董事、審計委員會、薪酬委員會與資訊揭露提高企業透明度。", "exercise": "某公司發生高層涉貪，且獨立董事比例不足。請依公司治理觀點提出改革建議。", "answer": "董事會重組：增加獨立董事席次，引入法律、財務及永續專業人士，成立審計委員會與薪酬委員會加強監督。<br>強化內控與稽核：建立獨立稽核單位定期檢查財務及採購流程；設立員工舉報平台，保障檢舉人權益。<br>資訊透明化：定期公布財務與非財務資訊，包括 ESG 指標與風險管理，與投資人和社會溝通，增進信任。", "news": "近年多起企業貪腐與造假案件，引發投資人對公司治理的高度關注。監管機構要求上市櫃公司增加獨立董事比例並強化資訊揭露，同時 ESG 評級亦將倫理與治理列為重要評分項，顯示企業形象與治理表現密切相關。"}, {"day": 28, "topic": "模擬考—綜合理論應用", "summary": "本日提供兩題綜合性模擬考題，目的是讓考生實際運用各種理論進行分析與建議。作答時應先說明所用理論，再結合案例數據提出分析，最後給出具體策略與建議。", "exercise": "題目一：某中小製造企業在 ESG 與數位轉型浪潮中面臨產業競爭加劇，請用 SWOT、五力、領導理論、平衡計分卡綜合分析並提出轉型策略。<br>題目二：一家新創電商平台擬進入共享經濟領域，面對既有巨頭與 ESG 要求，請運用藍海策略、創業精神、人力資源趨勢與公司治理等角度分析其優劣勢與風險。", "answer": "條理清晰，理論部分需簡述核心概念並引用相應來源。<br>分析時需具體列出各項因素並給出合理推論。<br>建議要具體（如改進措施、策略步驟、績效指標）。", "news": "近期商周與財經雜誌報導多個台灣企業實際轉型案例，從食品業到科技業都在 ESG、數位化、人才管理上做出策略調整，提供模擬考時可參考的實務情境。"}, {"day": 29, "topic": "模擬考—案例分析與口語表達", "summary": "本日練習以案例分析為核心，並重視口語表達架構。建議考生選擇兩個近期真實案例，運用學過理論進行分析，並嘗試以口頭簡報或寫作方式整理 3–5 分鐘的答案。", "exercise": "題目一：以某企業成功導入 AI 技術為案例，分析其從策略規劃到執行的關鍵要素，並評估導入後的績效與未來挑戰。<br>題目二：以某企業發生重大危機為例，分析其危機管理與韌性策略，並提出改進建議。", "answer": "開頭點出案例背景與核心問題。<br>選擇適合的理論框架（如五力、Kotter、Balanced Scorecard）進行分析。<br>結論部分提出策略建議與警示。", "news": "許多企業在 ESG 或 AI 導入中取得成效，媒體報導指出重要成功因素包括高層支持、跨部門協作與持續改善。反之，缺乏治理與倫理意識的企業則爆發醜聞引發輿論批評。"}, {"day": 30, "topic": "總複習與應試技巧", "summary": "總結 30 天所學理論，包括 SWOT、五力、BCG、競爭策略、4P行銷、激勵理論（Maslow、Herzberg、McClelland、期望與公平）、領導與變革、Kotter 八步驟、平衡計分卡、CSR/ESG、數位轉型、危機管理、品質管理與持續改善、藍海策略、平台經濟、人力趨勢與公司治理。掌握每個理論的核心概念與應用場景是取得高分的關鍵。", "exercise": "請自行擬定 3 題模擬試題，涵蓋策略分析、組織行為與永續經營。每題至少運用兩個不同理論進行綜合解答。", "answer": "先寫框架再填內容：拿到題目先寫理論架構大綱，再充實案例與數據。<br>理論+案例：每回答一理論後，最好用實際或新聞案例佐證。<br>條理與語言：分段清楚，用標題或符號強調重點；語句流暢且用詞專業。<br>時間管理：模擬練習時記錄自己答題所用時間，安排先易後難。<br>注意引用：必要時引用官方來源或新聞支持觀點，增加答案深度。", "news": "2025 年各大媒體報導指出，管理者面對 AI、ESG、碳政策與人才世代交替時，應具備跨領域整合能力並快速學習；企業成功的要素包括持續改善、勇於創新以及對利害關係人的承諾。"}];
+    const QUIZZES = {"1": [{"q": "SWOT 中哪些屬於『內部』要素？", "options": ["機會與威脅", "優勢與劣勢", "市場成長率與市佔"], "a": 1, "exp": "優勢/劣勢是企業內部；機會/威脅是外部。"}, {"q": "下列哪一項是 WO 策略的精神？", "options": ["用優勢抵禦威脅", "用優勢抓住機會", "克服劣勢以抓住機會"], "a": 2, "exp": "WO：克服劣勢以把握外部機會。"}], "2": [{"q": "波特五力不包含哪一項？", "options": ["買方議價力", "互補品力量", "替代品威脅"], "a": 1, "exp": "五力包含供應商/買方議價力、既有競爭者、潛在進入者、替代品；互補品非原始五力。"}, {"q": "五力越強通常代表？", "options": ["產業平均利潤越高", "產業平均利潤越低", "與利潤無關"], "a": 1, "exp": "競爭壓力越強，平均利潤越低。"}], "3": [{"q": "Maslow 需求層次正確順序為？", "options": ["尊重→安全→生理→自我實現", "生理→安全→歸屬→尊重→自我實現", "安全→生理→尊重→自我實現"], "a": 1, "exp": "由低到高：生理、安全、歸屬、尊重、自我實現。"}, {"q": "若員工高薪但倦怠，較可能未被滿足的是？", "options": ["生理需求", "安全需求", "尊重/自我實現需求"], "a": 2, "exp": "薪資通常滿足生理與部分安全；尊重與自我實現可能不足。"}], "4": [{"q": "Herzberg 認為薪資屬於？", "options": ["激勵因素", "保健因素", "自我實現因素"], "a": 1, "exp": "薪資屬保健因素，改善可減少不滿但不必然提升滿意。"}, {"q": "提升動機應優先？", "options": ["直接加薪即可", "先確保保健因素到位，再設計激勵因素", "只給挑戰性專案"], "a": 1, "exp": "先滿足保健因素，再導入激勵因素。"}], "5": [{"q": "McClelland 的三需求不包含？", "options": ["成就需求", "權力需求", "安全需求"], "a": 2, "exp": "安全需求屬 Maslow，不在 McClelland 三需求。"}, {"q": "對高成就需求者最有效的是？", "options": ["模糊目標", "具挑戰與明確回饋的任務", "完全沒有壓力的工作"], "a": 1, "exp": "成就需求偏好具挑戰且有明確回饋的工作。"}], "6": [{"q": "公平理論關注的是？", "options": ["投入/報酬比的相對比較", "絕對薪資水平", "公司市佔率"], "a": 0, "exp": "員工會比較自己的投入/報酬比與他人是否公平。"}, {"q": "提高公平感的作法不包含？", "options": ["透明獎酬制度", "隨機發放獎金", "市場薪資調查"], "a": 1, "exp": "隨機獎金會降低公平感。"}], "7": [{"q": "期望理論的動機公式是？", "options": ["動機=期望×工具性×效價", "動機=努力+能力", "動機=獎金×懲罰"], "a": 0, "exp": "Vroom 模型：E×I×V。"}, {"q": "若任何一項為零，動機？", "options": ["仍可維持", "變為零", "與其他項無關"], "a": 1, "exp": "任一項為 0，乘積即為 0。"}], "8": [{"q": "數位轉型初期較適合的領導方式是？", "options": ["交易型：明確目標與獎懲", "完全放任式", "只講願景不管進度"], "a": 0, "exp": "初期需要紀律與進度管控，交易型較適合。"}, {"q": "進入創新階段宜轉向？", "options": ["變革型：願景、授權、智力啟發", "仍只靠獎懲", "完全取消績效"], "a": 0, "exp": "後期以變革型激發內在動機與創新。"}], "9": [{"q": "Kotter 八步驟中的第一步是？", "options": ["建立願景", "營造緊迫感", "創造短期勝利"], "a": 1, "exp": "先讓組織理解變革必要性。"}, {"q": "『將新變革融入文化』屬於？", "options": ["中期步驟", "最後步驟", "不在模型內"], "a": 1, "exp": "第八步：文化化。"}], "10": [{"q": "BCG 中高成長高市佔的是？", "options": ["明星", "金牛", "瘦狗"], "a": 0, "exp": "Stars：高成長高市佔。"}, {"q": "對金牛事業的策略通常是？", "options": ["積極投資擴張", "維持並收割現金", "立即退出"], "a": 1, "exp": "金牛提供穩定現金流。"}], "11": [{"q": "CSR 的四層不包含？", "options": ["經濟、法律、倫理、慈善", "技術、產品、價格、推廣", "以上皆非"], "a": 1, "exp": "技術/產品/價格/推廣是行銷 4P。"}, {"q": "利害關係人不包含下列何者？", "options": ["員工與供應商", "社區與顧客", "競爭對手"], "a": 2, "exp": "競爭對手通常不是本公司利害關係人。"}], "12": [{"q": "ESG 中 G 指的是？", "options": ["治理", "成長", "綠色"], "a": 0, "exp": "G=Governance。"}, {"q": "降低範圍 2 排放常見作法？", "options": ["採用再生能源與購電合約", "改變員工通勤方式", "提升顧客滿意度"], "a": 0, "exp": "範圍2與用電有關。"}], "13": [{"q": "數位轉型的三階段常見為？", "options": ["數位化→優化→轉型", "策略→執行→結案", "導入→維護→淘汰"], "a": 0, "exp": "Digitization, Digitalization, Transformation。"}, {"q": "工業4.0核心技術不包含？", "options": ["IoT、AI、大數據、自動化", "紙本表單與人工搬運", "雲端/邊緣計算"], "a": 1, "exp": "紙本與人工非工業4.0核心。"}], "14": [{"q": "營運韌性強調？", "options": ["單一供應來源", "多元供應與彈性資源", "完全仰賴一位關鍵員工"], "a": 1, "exp": "分散風險、保持彈性。"}, {"q": "危機管理不包括？", "options": ["預防、準備、回應、復原", "只在危機發生後處理", "演練與風險評估"], "a": 1, "exp": "只事後處理不足。"}], "15": [{"q": "平衡計分卡四構面是？", "options": ["財務、顧客、內部流程、學習與成長", "財務、供應商、競爭者、社區", "利潤、現金、資產、負債"], "a": 0, "exp": "BSC 四構面如上。"}, {"q": "策略地圖的重點是？", "options": ["展示構面之因果連結", "只列 KPI 不連結", "僅呈現財務數字"], "a": 0, "exp": "策略地圖強調因果鏈。"}], "16": [{"q": "PDCA 的 C 指？", "options": ["Create", "Check", "Control"], "a": 1, "exp": "C=檢查。"}, {"q": "六標準差常用流程？", "options": ["DMAIC", "ABCDE", "KPI"], "a": 0, "exp": "Define-Measure-Analyze-Improve-Control。"}], "17": [{"q": "公平理論與期望理論整合時，需同時確保？", "options": ["公平與連結性", "高額獎金即可", "只看效價"], "a": 0, "exp": "兼顧分配公平與努力-回報連結。"}, {"q": "提升效價的作法是？", "options": ["提供對員工有價值的多元獎酬", "只增加工時", "取消培訓"], "a": 0, "exp": "效價=獎酬對個人價值。"}], "18": [{"q": "交易型與變革型可否互補？", "options": ["可以，依情境混合", "不行，必須擇一", "交易型只適用危機"], "a": 0, "exp": "兩者可互補。"}, {"q": "變革型領導的要素不包含？", "options": ["願景激勵", "智力啟發", "嚴格處罰"], "a": 2, "exp": "嚴格處罰偏交易型。"}], "19": [{"q": "平台經濟常見特性？", "options": ["網路效應", "完全不需要信任機制", "只靠硬體製造"], "a": 0, "exp": "使用者越多越有價值。"}, {"q": "共享經濟核心是？", "options": ["利用閒置資源", "高固定產能", "封閉式供應鏈"], "a": 0, "exp": "提高資源使用率。"}], "20": [{"q": "學習型組織重視？", "options": ["持續學習與知識分享", "只看短期財務", "禁止跨部門交流"], "a": 0, "exp": "文化與分享是關鍵。"}, {"q": "知識管理的作法不包含？", "options": ["建立內部 Wiki/社群", "最佳實務沉澱", "完全口耳相傳不記錄"], "a": 2, "exp": "需制度化與工具支持。"}], "21": [{"q": "藍海策略常用哪個四格？", "options": ["消除/降低/提高/創造", "定位/分眾/聚焦/拓展", "成本/差異/集中/防守"], "a": 0, "exp": "價值創新四動作。"}, {"q": "顛覆式創新初期常從？", "options": ["高端主流市場", "低端或利基市場", "政府標案"], "a": 1, "exp": "先以簡便低價切入。"}], "22": [{"q": "雲端運算的典型優勢？", "options": ["降低前期硬體投資", "完全免資安考量", "只能處理小數據"], "a": 0, "exp": "按需付費、彈性擴展。"}, {"q": "導入 AI 的關鍵不包含？", "options": ["資料治理與品質", "流程再造", "忽略員工培訓"], "a": 2, "exp": "員工培訓很重要，不能忽略。"}], "23": [{"q": "彈性工作主要效益？", "options": ["提升工作生活平衡", "降低員工滿意度", "增加通勤時間"], "a": 0, "exp": "提高滿意與生產力。"}, {"q": "多元共融政策目標不包含？", "options": ["提供平等機會", "提升創新", "強化歧視"], "a": 2, "exp": "應消除歧視。"}], "24": [{"q": "訂閱制常見營收模式？", "options": ["一次性買斷", "月費/年費持續付費", "只靠廣告"], "a": 1, "exp": "Recurring revenue。"}, {"q": "商業模式三大問題是？", "options": ["創造/傳遞/獲取價值", "採購/製造/銷售", "研發/行銷/客服"], "a": 0, "exp": "Business Model 核心。"}], "25": [{"q": "綜合分析時常見流程？", "options": ["環境→策略→組織→績效→改善", "先決定 KPI 再找策略", "只用單一工具"], "a": 0, "exp": "先分析再制定策略並落地衡量。"}, {"q": "BCG 的用途是？", "options": ["人力考核", "產品/事業組合資源配置", "財務報表編制"], "a": 1, "exp": "協助資源分派。"}], "26": [{"q": "範圍1排放主要來自？", "options": ["購電用電", "自有設施直接排放", "供應商排放"], "a": 1, "exp": "燃燒/製程等直接排放。"}, {"q": "面對碳稅風險，何者為可行策略？", "options": ["投資減碳技術", "忽視法規", "不做盤查"], "a": 0, "exp": "技術/治理/供應鏈三面並進。"}], "27": [{"q": "公司治理的目的是？", "options": ["保障股東與利害關係人、抑制代理人問題", "只讓管理者獲利", "避免資訊揭露"], "a": 0, "exp": "提升透明與監督。"}, {"q": "加強監督的機制不包含？", "options": ["獨立董事與審計委員會", "內部稽核", "取消舉報平台"], "a": 2, "exp": "舉報機制應保留。"}], "28": [{"q": "綜合題作答建議先？", "options": ["直接寫細節", "先搭建理論框架再填內容", "只寫新聞"], "a": 1, "exp": "框架優先、再充實案例。"}, {"q": "良好答案需？", "options": ["理論+案例+具體建議", "只列名詞", "不需結構"], "a": 0, "exp": "結構化與可執行。"}], "29": [{"q": "口語表達重點不包含？", "options": ["清楚架構", "時間管理", "避免重點"], "a": 2, "exp": "需強調重點。"}, {"q": "案例分析常用框架？", "options": ["五力、Kotter、BSC 等", "隨機猜測", "只靠直覺"], "a": 0, "exp": "選擇適合的理論支撐分析。"}], "30": [{"q": "總複習的有效策略？", "options": ["先寫框架再填內容", "不做題目演練", "忽視時間管理"], "a": 0, "exp": "掌握框架與節奏。"}, {"q": "應試技巧不包含？", "options": ["用標題/符號分段", "引用案例或數據佐證", "刻意忽略語言與條理"], "a": 2, "exp": "語言與條理很重要。"}]};
+
+    const cardsEl = document.getElementById('cards');
+    const searchEl = document.getElementById('search');
+    const progressEl = document.getElementById('progressBar');
+    const resetBtn = document.getElementById('resetAll');
+    const saveBtn = document.getElementById('saveState');
+    const loadInput = document.getElementById('loadFile');
+
+    const detail = document.getElementById('detail');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailSummary = document.getElementById('detailSummary');
+    const detailExercise = document.getElementById('detailExercise');
+    const detailAnswer = document.getElementById('detailAnswer');
+    const detailNews = document.getElementById('detailNews');
+    const detailQuiz = document.getElementById('detailQuiz');
+    const submitQuizBtn = document.getElementById('submitQuiz');
+    const resetQuizBtn = document.getElementById('resetQuiz');
+    const quizResult = document.getElementById('quizResult');
+
+    // In-memory progress only
+    let PROGRESS = {}; // { day: true/false }
+
+    function renderCards(filter="") {
+      const q = filter.trim().toLowerCase();
+      cardsEl.innerHTML = '';
+      DAYS.forEach(d => {
+        const title = `Day ${d.day}`;
+        const topic = d.topic;
+        const matched = !q || title.toLowerCase().includes(q) || topic.toLowerCase().includes(q);
+        if (!matched) return;
+        const checked = !!PROGRESS[d.day];
+        const card = document.createElement('div');
+        card.className = 'card' + (checked ? ' done' : '');
+        card.innerHTML = `
+          <span class="badge">已完成</span>
+          <h3>${title}</h3>
+          <div class="topic">${topic}</div>
+          <div class="actions">
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+              <input type="checkbox" ${checked ? 'checked' : ''} data-day="${d.day}" /> 勾選完成
+            </label>
+            <button class="btn view" data-view="${d.day}">查看</button>
+          </div>
+        `;
+        cardsEl.appendChild(card);
+      });
+      updateProgressBar();
+    }
+
+    function updateProgressBar() {
+      const total = DAYS.length;
+      const done = Object.values(PROGRESS).filter(Boolean).length;
+      const pct = total ? Math.round(done * 100 / total) : 0;
+      progressEl.style.width = pct + '%';
+      progressEl.title = `完成 ${done}/${total} (${pct}%)`;
+    }
+
+    // Init
+    renderCards();
+
+    // Search
+    searchEl.addEventListener('input', (e) => { renderCards(e.target.value); });
+
+    // Delegated handlers on cards
+    cardsEl.addEventListener('click', (e) => {
+      const cb = e.target.closest('input[type="checkbox"]');
+      if (cb && cb.dataset.day) {
+        const day = parseInt(cb.dataset.day, 10);
+        PROGRESS[day] = cb.checked;
+        renderCards(searchEl.value);
+        return;
+      }
+      const btn = e.target.closest('button.btn.view');
+      if (btn && btn.dataset.view) {
+        const day = parseInt(btn.dataset.view, 10);
+        const d = DAYS.find(x => x.day === day);
+        if (!d) return;
+        detailTitle.textContent = `Day ${d.day} — ${d.topic}`;
+        detailSummary.innerHTML = d.summary || '<span class="empty">（本日沒有理論簡述）</span>';
+        detailExercise.innerHTML = d.exercise || '<span class="empty">（本日沒有練習題）</span>';
+        detailAnswer.innerHTML = d.answer || '<span class="empty">（本日沒有答案/技巧）</span>';
+        detailNews.innerHTML = d.news || '<span class="empty">（無新聞摘要）</span>';
+        renderQuiz(day);
+        quizResult.textContent = '';
+        detail.style.display = 'block';
+        detail.setAttribute('aria-hidden', 'false');
+      }
+    });
+
+    // Close modal
+    document.getElementById('closeDetail').addEventListener('click', () => { detail.style.display = 'none'; detail.setAttribute('aria-hidden', 'true'); });
+    detail.addEventListener('click', (e) => { if (e.target === detail) { detail.style.display = 'none'; detail.setAttribute('aria-hidden', 'true'); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { detail.style.display = 'none'; detail.setAttribute('aria-hidden', 'true'); } });
+
+    // Quiz
+    function renderQuiz(day) {
+      const qs = QUIZZES[day] || [];
+      let html = '';
+      qs.forEach((q, i) => {
+        html += `<div class="q"><strong>Q${i+1}.</strong> ${q.q}</div>`;
+        q.options.forEach((opt, j) => {
+          html += `<label class="opt"><input type="radio" name="q${i}" value="${j}" /> ${opt}</label>`;
+        });
+        html += `<div class="exp" id="exp${i}" style="display:none"></div>`;
+      });
+      if (qs.length === 0) html = '<span class="empty">（本日尚無題目）</span>';
+      detailQuiz.innerHTML = html;
+    }
+
+    submitQuizBtn.addEventListener('click', () => {
+      const dayText = detailTitle.textContent.match(/Day\s(\d+)/);
+      if (!dayText) return;
+      const day = parseInt(dayText[1], 10);
+      const qs = QUIZZES[day] || [];
+      let correct = 0;
+      qs.forEach((q, i) => {
+        const chosen = document.querySelector(`input[name="q${i}"]:checked`);
+        const expEl = document.getElementById(`exp${i}`);
+        if (!chosen) { expEl.style.display = 'block'; expEl.textContent = '未作答'; return; }
+        const val = parseInt(chosen.value, 10);
+                const labels = Array.from(
+          detailQuiz.querySelectorAll(`input[name="q${i}"]`)
+        ).map(x => x.parentElement);
+
+        // 先清掉舊狀態
+        labels.forEach(l => l.classList.remove('correct','wrong'));
+
+        if (val === q.a) {
+          correct++;
+          // 選對：標示正確答案
+          labels[q.a].classList.add('correct');
+          expEl.textContent = '✔ 正確！' + (q.exp ? ' ' + q.exp : '');
+        } else {
+          // 選錯：你選的紅色，正確答案綠色
+          chosen.parentElement.classList.add('wrong');
+          labels[q.a].classList.add('correct');
+          expEl.textContent = '✘ 錯誤。正確答案已標示。' + (q.exp ? ' ' + q.exp : '');
+        }
+
+        expEl.style.display = 'block';
+      });
+      quizResult.textContent = `得分：${correct}/${qs.length}`;
+    });
+
+    resetQuizBtn.addEventListener('click', () => {
+      const inputs = detailQuiz.querySelectorAll('input[type="radio"]');
+      inputs.forEach(i => { i.checked = false; i.parentElement.classList.remove('correct','wrong'); });
+      Array.from(detailQuiz.querySelectorAll('.exp')).forEach(e => { e.style.display = 'none'; e.textContent=''; });
+      quizResult.textContent = '';
+    });
+
+    // Reset all
+    resetBtn.addEventListener('click', () => {
+      if (confirm('要清除所有勾選進度嗎？')) { PROGRESS = {}; renderCards(searchEl.value); }
+    });
+
+    // Export / Import progress (offline, no LocalStorage)
+    saveBtn.addEventListener('click', () => {
+      const data = JSON.stringify(PROGRESS, null, 2);
+      const blob = new Blob([data], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'review-progress.json';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    });
+
+    loadInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { PROGRESS = JSON.parse(reader.result || '{}') || {}; } catch (err) { alert('JSON 格式錯誤'); return; }
+        renderCards(searchEl.value);
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
